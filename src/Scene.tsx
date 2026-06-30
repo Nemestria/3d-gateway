@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useGLTF, OrbitControls, Grid } from "@react-three/drei";
+import { useGLTF, Grid } from "@react-three/drei";
 import { Box3, Vector3 } from "three";
 import type { ThreeEvent } from "@react-three/fiber";
 import type { FlightPhase } from "./CameraRig";
@@ -108,15 +108,6 @@ export default function Scene({
 
       <Desk />
       <Computer onClick={() => phase === "idle" && onComputerClick()} />
-
-      {phase === "idle" && (
-        <OrbitControls
-          target={[0, 1.2, 0]}
-          maxPolarAngle={Math.PI / 2.1}
-          minDistance={2}
-          maxDistance={15}
-        />
-      )}
     </>
   );
 }

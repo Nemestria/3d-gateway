@@ -1,29 +1,27 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Vector3 } from "three";
+import { CameraControls } from "@react-three/drei";
 import type { PerspectiveCamera } from "three";
 
 export type FlightPhase = "idle" | "flying" | "arrived" | "returning";
 
-// Tunable shot constants. ESTABLISHED is the wide intro framing (matches the
-// camera prop passed to <Canvas>, and where "returning" always lands so the
-// orbit controls resume from a known-good state). CLOSE is "pressed up
-// against the screen" — tune these alongside the desk/computer
+// Tunable shots. ESTABLISHED is the wide intro framing (matches the camera
+// prop passed to <Canvas>, and where "returning" lands). CLOSE is "pressed
+// up against the screen" — tune these alongside the desk/computer
 // rotation/position constants in Scene.tsx since they all assume the same
 // model orientation.
-const ESTABLISHED = {
-  position: new Vector3(4, 3, 6),
-  target: new Vector3(0, 1.2, 0),
-  fov: 50,
-};
-const CLOSE = {
-  position: new Vector3(0, 1.5, 1.1),
-  target: new Vector3(0, 1.45, -1),
-  fov: 95,
-};
+// [eyeX, eyeY, eyeZ, targetX, targetY, targetZ]
+const ESTABLISHED_LOOK: [number, number, number, number, number, number] = [
+  4, 3, 6, 0, 1.2, 0,
+];
+const CLOSE_LOOK: [number, number, number, number, number, number] = [
+  0, 1.5, 1.1, 0, 1.45, -1,
+];
+const ESTABLISHED_FOV = 50;
+const CLOSE_FOV = 95;
 
-const FLIGHT_DURATION = 2.4; // seconds
-const RETURN_DURATION = 1.8; // seconds — a little snappier than the fly-in
+const FLIGHT_DURATION = 2.4; // seconds — kept in sync with CameraControls' own transition time below
+const RETURN_DURATION = 1.8;
 
 function easeInOutCubic(t: number) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -33,93 +31,67 @@ export default function CameraRig({
   phase,
   onArrived,
   onReturned,
-  onAberrationChange,
 }: {
   phase: FlightPhase;
   onArrived: () => void;
   onReturned: () => void;
-  onAberrationChange: (offset: number) => void;
 }) {
+  const controls = useRef<CameraControls>(null);
   const { camera } = useThree();
   const elapsed = useRef(0);
+  const startFov = useRef(ESTABLISHED_FOV);
   const prevPhase = useRef<FlightPhase>(phase);
 
-  // Snapshot of where the camera actually is/looks/fov'd when a flight
-  // starts, so it eases from the live view instead of snapping to a fixed
-  // constant (which is what caused the "sudden cut" — the user had usually
-  // orbited away from ESTABLISHED by the time they clicked).
-  const start = useRef({
-    position: new Vector3(),
-    target: new Vector3(),
-    fov: 50,
-  });
-  const liveTarget = useRef(ESTABLISHED.target.clone());
+  useEffect(() => {
+    controls.current?.setLookAt(...ESTABLISHED_LOOK, false);
+    // run once on mount only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    const cam = camera as PerspectiveCamera;
-    if (phase === "flying" && prevPhase.current !== "flying") {
-      elapsed.current = 0;
-      start.current.position.copy(cam.position);
-      start.current.target.copy(liveTarget.current);
-      start.current.fov = cam.fov;
+    const c = controls.current;
+    if (!c) return;
+
+    if (phase === "flying") {
+      c.setLookAt(...CLOSE_LOOK, true).then(onArrived);
+    } else if (phase === "returning") {
+      c.setLookAt(...ESTABLISHED_LOOK, true).then(onReturned);
     }
-    if (phase === "returning" && prevPhase.current !== "returning") {
-      elapsed.current = 0;
-      start.current.position.copy(cam.position);
-      start.current.target.copy(liveTarget.current);
-      start.current.fov = cam.fov;
-    }
-    prevPhase.current = phase;
-  }, [phase, camera]);
+  }, [phase, onArrived, onReturned]);
 
   useFrame((_, delta) => {
     const cam = camera as PerspectiveCamera;
 
-    if (phase === "idle") {
-      liveTarget.current.copy(ESTABLISHED.target);
-      onAberrationChange(0);
-      return;
+    if (phase !== prevPhase.current) {
+      if (phase === "flying" || phase === "returning") {
+        elapsed.current = 0;
+        startFov.current = cam.fov;
+      }
+      prevPhase.current = phase;
     }
 
     if (phase === "flying" || phase === "returning") {
       const duration = phase === "flying" ? FLIGHT_DURATION : RETURN_DURATION;
-      const endState = phase === "flying" ? CLOSE : ESTABLISHED;
+      const endFov = phase === "flying" ? CLOSE_FOV : ESTABLISHED_FOV;
 
       elapsed.current += delta;
       const t = Math.min(elapsed.current / duration, 1);
       const eased = easeInOutCubic(t);
 
-      cam.position.lerpVectors(start.current.position, endState.position, eased);
-      liveTarget.current.lerpVectors(start.current.target, endState.target, eased);
-      cam.lookAt(liveTarget.current);
-      cam.fov = start.current.fov + (endState.fov - start.current.fov) * eased;
+      cam.fov = startFov.current + (endFov - startFov.current) * eased;
       cam.updateProjectionMatrix();
-
-      if (phase === "flying") {
-        // Aberration ramps in fast, peaks mid-flight, settles to a low
-        // ambient amount once arrived rather than going back to zero.
-        const peak = Math.sin(eased * Math.PI);
-        const settle = 0.08;
-        onAberrationChange(Math.max(peak * 0.9, settle * eased));
-      } else {
-        onAberrationChange(0.08 * (1 - eased));
-      }
-
-      if (t >= 1) {
-        if (phase === "flying") {
-          onAberrationChange(0.08);
-          onArrived();
-        } else {
-          onAberrationChange(0);
-          onReturned();
-        }
-      }
-    }
-
-    if (phase === "arrived") {
-      onAberrationChange(0.08);
     }
   });
 
-  return null;
+  return (
+    <CameraControls
+      ref={controls}
+      makeDefault
+      enabled={phase === "idle"}
+      minPolarAngle={0}
+      maxPolarAngle={Math.PI / 2.1}
+      minDistance={2}
+      maxDistance={15}
+    />
+  );
 }
