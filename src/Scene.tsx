@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useGLTF, Grid, Html, Text, Billboard } from "@react-three/drei";
 import { Box3, Vector3 } from "three";
 import { useThree, type ThreeEvent } from "@react-three/fiber";
@@ -39,27 +39,31 @@ function Note() {
   );
 }
 
-// Neon "welcome" signage behind the desk, visible from the establishing
-// shot. Billboard keeps it always facing the camera regardless of the
-// locked-POV rig's current angle, so no manual facing-rotation math needed.
-// outlineWidth fakes a bold weight (troika's SDF text has no font-weight
-// prop without supplying a separate bold font file).
+// Google Fonts "Boldonse" — a genuinely heavy display weight, fetched as a
+// direct .woff URL (troika's SDF text renders from a font file, not CSS, so
+// the usual @import-in-index.css trick doesn't apply here).
+const BOLDONSE_FONT_URL = "https://fonts.gstatic.com/s/boldonse/v1/ZgNQjPxGPbbJUZemjC3_.woff";
+
+// One-time welcome signage off to the side of the room, visible from the
+// establishing shot only — dismissed (see Scene's signDismissed) after 15s
+// or as soon as the visitor picks a station, since a Billboard this size
+// would otherwise bleed into the close-up screen view (it always faces the
+// camera, including once zoomed into the monitor).
 function WelcomeSign() {
   return (
-    <Billboard position={[0, 2.75, -0.6]}>
+    <Billboard position={[-3.2, 1.8, 3]}>
       <Text
-        fontSize={0.26}
-        maxWidth={5.5}
-        lineHeight={1.3}
+        font={BOLDONSE_FONT_URL}
+        fontSize={0.24}
+        maxWidth={3.2}
+        lineHeight={1.35}
         textAlign="center"
         anchorX="center"
         anchorY="middle"
-        color="#bfe9ff"
-        outlineWidth={0.016}
-        outlineColor="#00e5ec"
+        color="#ffffff"
         letterSpacing={0.01}
       >
-        Hi, welcome to my portfolio. This is Ale's room
+        HI, WELCOME TO MY PORTFOLIO. THIS IS ALE'S ROOM
       </Text>
     </Billboard>
   );
@@ -230,7 +234,20 @@ export default function Scene({
   // is either mid-transition or already the active focus, not a hoverable
   // menu item.
   const interactive = phase === "idle";
-  const handleClick = () => interactive && onComputerClick();
+
+  // WelcomeSign is a one-shot greeting: gone after 15s, or immediately once
+  // the visitor enters a station for the first time (whichever comes first).
+  const [signDismissed, setSignDismissed] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSignDismissed(true), 15000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleClick = () => {
+    if (!interactive) return;
+    setSignDismissed(true);
+    onComputerClick();
+  };
   const handleHoverChange = (h: boolean) => setHovered(interactive && h);
 
   return (
@@ -272,7 +289,7 @@ export default function Scene({
 
       <Desk />
       <Note />
-      <WelcomeSign />
+      {!signDismissed && <WelcomeSign />}
       <Computer onClick={handleClick} onHoverChange={handleHoverChange} interactive={interactive} />
       <ScreenPlane
         onClick={handleClick}

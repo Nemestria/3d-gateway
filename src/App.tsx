@@ -6,9 +6,13 @@ import PasswordTerminal from "./PasswordTerminal";
 
 // Env-driven so local testing doesn't require hardcoding the prod URL —
 // see CHECKPOINTS.md Checkpoint 4.
-const PORTFOLIO_URL =
+const PORTFOLIO_BASE_URL =
   import.meta.env.VITE_PORTFOLIO_URL ??
   "https://portfolio-ashen-sigma-63gx2gi92g.vercel.app";
+// ?embed=1 signals the portfolio to activate its embed-mode font/spacing
+// adjustments (see mainRepo/src/main.tsx). Never used for security — the
+// portfolio reads this to know it's inside the 3d-gateway, not a real user.
+const PORTFOLIO_URL = `${PORTFOLIO_BASE_URL}?embed=1`;
 
 // The portfolio's own layout targets ~1024x768 desktop (see its CLAUDE.md).
 // The monitor's screen is only a few hundred CSS px wide, so a plain
