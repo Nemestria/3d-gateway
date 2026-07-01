@@ -5,6 +5,7 @@ import CameraRig, { type FlightPhase } from "./CameraRig";
 import PasswordTerminal from "./PasswordTerminal";
 import LanguageGate from "./LanguageGate";
 import PostFX from "./PostFX";
+import CrtOverlay from "./CrtOverlay";
 import { translations, type Lang } from "./i18n";
 
 const FX_STORAGE_KEY = "3d-gateway-fx-enabled";
@@ -105,36 +106,68 @@ function App() {
 
   return (
     <div style={{ width: "100vw", height: "100vh", background: "#000", position: "relative" }}>
-      <Canvas shadows camera={{ position: [4, 3, 6], fov: 50 }}>
-        <Suspense fallback={null}>
-          <Scene
-            phase={phase}
-            onComputerClick={() => setPhase("flying")}
-            screenContent={screenContent}
-            welcomeText={t.welcome}
-            showWelcome={lang !== null}
-          />
-          <CameraRig
-            phase={phase}
-            onArrived={() => setPhase("arrived")}
-            onReturned={() => setPhase("idle")}
-          />
-        </Suspense>
-        <PostFX enabled={fxEnabled} />
-      </Canvas>
+      {/* Chromatic aberration (via CrtOverlay's SVG filter) applies to
+          literally everything painted inside this wrapper — the 3D canvas,
+          the plain DOM buttons, LanguageGate, and (once unlocked) the
+          embedded portfolio iframe. CSS `filter` operates at the
+          compositing stage, so cross-origin content is affected visually
+          same as anything else, unlike e.g. drawing the iframe into a
+          <canvas> (which CORS would block). */}
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          filter: fxEnabled ? "url(#crt-aberration)" : undefined,
+        }}
+      >
+        <Canvas shadows camera={{ position: [4, 3, 6], fov: 50 }}>
+          <Suspense fallback={null}>
+            <Scene
+              phase={phase}
+              onComputerClick={() => setPhase("flying")}
+              screenContent={screenContent}
+              welcomeText={t.welcome}
+              showWelcome={lang !== null}
+            />
+            <CameraRig
+              phase={phase}
+              onArrived={() => setPhase("arrived")}
+              onReturned={() => setPhase("idle")}
+            />
+          </Suspense>
+          <PostFX enabled={fxEnabled} />
+        </Canvas>
 
-      {phase !== "idle" && phase !== "returning" && (
+        {phase !== "idle" && phase !== "returning" && (
+          <button
+            onClick={() => {
+              // Going back always resets the station — walking up to the
+              // computer again means entering the password again, per design.
+              setUnlocked(false);
+              setPhase("returning");
+            }}
+            style={{
+              position: "absolute",
+              top: 16,
+              left: 16,
+              fontFamily: "monospace",
+              background: "rgba(0,0,0,0.6)",
+              color: "#bfe9ff",
+              border: "1px solid #bfe9ff",
+              padding: "8px 14px",
+              cursor: "pointer",
+            }}
+          >
+            {t.back}
+          </button>
+        )}
+
         <button
-          onClick={() => {
-            // Going back always resets the station — walking up to the
-            // computer again means entering the password again, per design.
-            setUnlocked(false);
-            setPhase("returning");
-          }}
+          onClick={() => setFxEnabled((v) => !v)}
           style={{
             position: "absolute",
             top: 16,
-            left: 16,
+            right: 16,
             fontFamily: "monospace",
             background: "rgba(0,0,0,0.6)",
             color: "#bfe9ff",
@@ -143,28 +176,13 @@ function App() {
             cursor: "pointer",
           }}
         >
-          {t.back}
+          {fxEnabled ? t.effectsOn : t.effectsOff}
         </button>
-      )}
 
-      <button
-        onClick={() => setFxEnabled((v) => !v)}
-        style={{
-          position: "absolute",
-          top: 16,
-          right: 16,
-          fontFamily: "monospace",
-          background: "rgba(0,0,0,0.6)",
-          color: "#bfe9ff",
-          border: "1px solid #bfe9ff",
-          padding: "8px 14px",
-          cursor: "pointer",
-        }}
-      >
-        {fxEnabled ? t.effectsOn : t.effectsOff}
-      </button>
+        {!lang && <LanguageGate onDone={setLang} />}
+      </div>
 
-      {!lang && <LanguageGate onDone={setLang} />}
+      {fxEnabled && <CrtOverlay />}
     </div>
   );
 }
