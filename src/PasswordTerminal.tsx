@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { translations } from "./i18n";
 
 const PASSWORD = "1234";
 const PX = "'Press Start 2P', monospace";
@@ -7,8 +8,10 @@ const ACCENT = "#00b9be";
 const ERROR = "#ff4d4d";
 
 export default function PasswordTerminal({
+  t,
   onSuccess,
 }: {
+  t: (typeof translations)[keyof typeof translations];
   onSuccess: () => void;
 }) {
   const [value, setValue] = useState("");
@@ -58,7 +61,7 @@ export default function PasswordTerminal({
             letterSpacing: 1,
           }}
         >
-          ENTER PASSWORD:
+          {t.enterPassword}
         </div>
         <input
           autoFocus
@@ -88,7 +91,7 @@ export default function PasswordTerminal({
             letterSpacing: 1,
           }}
         >
-          HINT: 1234
+          {t.hint}
         </div>
         <button
           type="submit"
@@ -105,7 +108,7 @@ export default function PasswordTerminal({
             cursor: "pointer",
           }}
         >
-          CONFIRM
+          {t.confirm}
         </button>
         {denied && (
           <div
@@ -117,7 +120,7 @@ export default function PasswordTerminal({
               letterSpacing: 1,
             }}
           >
-            ACCESS DENIED
+            {t.accessDenied}
           </div>
         )}
       </form>

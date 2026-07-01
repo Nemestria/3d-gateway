@@ -3,6 +3,8 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import Scene from "./Scene";
 import CameraRig, { type FlightPhase } from "./CameraRig";
 import PasswordTerminal from "./PasswordTerminal";
+import LanguageGate from "./LanguageGate";
+import { translations, type Lang } from "./i18n";
 
 // Env-driven so local testing doesn't require hardcoding the prod URL —
 // see CHECKPOINTS.md Checkpoint 4.
@@ -71,6 +73,13 @@ function PortfolioFrame() {
 function App() {
   const [phase, setPhase] = useState<FlightPhase>("idle");
   const [unlocked, setUnlocked] = useState(false);
+  // null until LanguageGate resolves — gates the whole experience the same
+  // way the portfolio's own splash screen does (see ARCHITECTURE.md), and
+  // doubles as the loading screen for the GLB models (useProgress in
+  // LanguageGate tracks the same THREE.DefaultLoadingManager useGLTF uses).
+  const [lang, setLang] = useState<Lang | null>(null);
+
+  const t = translations[lang ?? "en"];
 
   // Rendered glued to the monitor's screen-plane (see Scene.tsx/CameraRig's
   // "Screen-plane" note) via drei's <Html transform>, not as a full-page
@@ -78,7 +87,7 @@ function App() {
   // visible around it. See ARCHITECTURE.md "How they connect".
   const screenContent =
     phase === "arrived" && !unlocked ? (
-      <PasswordTerminal onSuccess={() => setUnlocked(true)} />
+      <PasswordTerminal t={t} onSuccess={() => setUnlocked(true)} />
     ) : unlocked ? (
       <PortfolioFrame />
     ) : null;
@@ -91,6 +100,7 @@ function App() {
             phase={phase}
             onComputerClick={() => setPhase("flying")}
             screenContent={screenContent}
+            welcomeText={t.welcome}
           />
           <CameraRig
             phase={phase}
@@ -120,9 +130,11 @@ function App() {
             cursor: "pointer",
           }}
         >
-          ← BACK
+          {t.back}
         </button>
       )}
+
+      {!lang && <LanguageGate onDone={setLang} />}
     </div>
   );
 }

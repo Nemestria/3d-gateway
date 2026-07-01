@@ -39,32 +39,32 @@ function Note() {
   );
 }
 
-// Google Fonts "Boldonse" — a genuinely heavy display weight, fetched as a
-// direct .woff URL (troika's SDF text renders from a font file, not CSS, so
-// the usual @import-in-index.css trick doesn't apply here).
-const BOLDONSE_FONT_URL = "https://fonts.gstatic.com/s/boldonse/v1/ZgNQjPxGPbbJUZemjC3_.woff";
-
-// One-time welcome signage off to the side of the room, visible from the
-// establishing shot only — dismissed (see Scene's signDismissed) after 15s
-// or as soon as the visitor picks a station, since a Billboard this size
-// would otherwise bleed into the close-up screen view (it always faces the
-// camera, including once zoomed into the monitor).
-function WelcomeSign() {
+// Google Fonts "Boldonse" — a genuinely heavy display weight. troika's SDF
+// <Text> needs an actual font *file* loaded via XHR inside a worker, and
+// that silently never resolved here (no error, no visible network request,
+// tried both a remote .woff and a self-hosted same-origin .ttf) — rather
+// than keep fighting troika's worker font loader, render this one as a
+// regular DOM overlay instead: drei's <Html> billboard mode (no `transform`,
+// same technique ScreenPlane already uses reliably) with a plain CSS
+// @import (see index.css), exactly how the rest of this app's text
+// (PasswordTerminal, LanguageGate) already gets its fonts.
+function WelcomeSign({ text }: { text: string }) {
   return (
-    <Billboard position={[-3.2, 1.8, 3]}>
-      <Text
-        font={BOLDONSE_FONT_URL}
-        fontSize={0.24}
-        maxWidth={3.2}
-        lineHeight={1.35}
-        textAlign="center"
-        anchorX="center"
-        anchorY="middle"
-        color="#ffffff"
-        letterSpacing={0.01}
-      >
-        HI, WELCOME TO MY PORTFOLIO. THIS IS ALE'S ROOM
-      </Text>
+    <Billboard position={[-2.6, 1.8, 2.4]}>
+      <Html center distanceFactor={8} style={{ pointerEvents: "none" }}>
+        <div
+          style={{
+            width: 340,
+            fontFamily: "'Boldonse', sans-serif",
+            fontSize: 22,
+            lineHeight: 1.4,
+            textAlign: "center",
+            color: "#ffffff",
+          }}
+        >
+          {text.toUpperCase()}
+        </div>
+      </Html>
     </Billboard>
   );
 }
@@ -223,10 +223,12 @@ export default function Scene({
   phase,
   onComputerClick,
   screenContent,
+  welcomeText,
 }: {
   phase: FlightPhase;
   onComputerClick: () => void;
   screenContent?: ReactNode;
+  welcomeText: string;
 }) {
   const [hovered, setHovered] = useState(false);
   // Hover-glow only makes sense while picking a station from the general
@@ -289,7 +291,7 @@ export default function Scene({
 
       <Desk />
       <Note />
-      {!signDismissed && <WelcomeSign />}
+      {!signDismissed && <WelcomeSign text={welcomeText} />}
       <Computer onClick={handleClick} onHoverChange={handleHoverChange} interactive={interactive} />
       <ScreenPlane
         onClick={handleClick}
