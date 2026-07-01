@@ -4,7 +4,10 @@ import Scene from "./Scene";
 import CameraRig, { type FlightPhase } from "./CameraRig";
 import PasswordTerminal from "./PasswordTerminal";
 import LanguageGate from "./LanguageGate";
+import PostFX from "./PostFX";
 import { translations, type Lang } from "./i18n";
+
+const FX_STORAGE_KEY = "3d-gateway-fx-enabled";
 
 // Env-driven so local testing doesn't require hardcoding the prod URL —
 // see CHECKPOINTS.md Checkpoint 4.
@@ -78,6 +81,14 @@ function App() {
   // doubles as the loading screen for the GLB models (useProgress in
   // LanguageGate tracks the same THREE.DefaultLoadingManager useGLTF uses).
   const [lang, setLang] = useState<Lang | null>(null);
+  // Vintage CRT/wide-lens post-processing (PostFX.tsx), toggleable from a
+  // settings button — persisted so the choice survives a reload.
+  const [fxEnabled, setFxEnabled] = useState(
+    () => localStorage.getItem(FX_STORAGE_KEY) !== "false",
+  );
+  useEffect(() => {
+    localStorage.setItem(FX_STORAGE_KEY, String(fxEnabled));
+  }, [fxEnabled]);
 
   const t = translations[lang ?? "en"];
 
@@ -109,6 +120,7 @@ function App() {
             onReturned={() => setPhase("idle")}
           />
         </Suspense>
+        <PostFX enabled={fxEnabled} />
       </Canvas>
 
       {phase !== "idle" && phase !== "returning" && (
@@ -134,6 +146,23 @@ function App() {
           {t.back}
         </button>
       )}
+
+      <button
+        onClick={() => setFxEnabled((v) => !v)}
+        style={{
+          position: "absolute",
+          top: 16,
+          right: 16,
+          fontFamily: "monospace",
+          background: "rgba(0,0,0,0.6)",
+          color: "#bfe9ff",
+          border: "1px solid #bfe9ff",
+          padding: "8px 14px",
+          cursor: "pointer",
+        }}
+      >
+        {fxEnabled ? t.effectsOn : t.effectsOff}
+      </button>
 
       {!lang && <LanguageGate onDone={setLang} />}
     </div>

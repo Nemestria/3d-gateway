@@ -17,6 +17,8 @@ export const translations: Record<
     confirm: string;
     accessDenied: string;
     welcome: string;
+    effectsOn: string;
+    effectsOff: string;
   }
 > = {
   en: {
@@ -27,7 +29,9 @@ export const translations: Record<
     hint: "HINT: 1234",
     confirm: "CONFIRM",
     accessDenied: "ACCESS DENIED",
-    welcome: "Hi, welcome to my portfolio. This is Ale's room",
+    welcome: "Hi, welcome to my portfolio. Check my computer, please!",
+    effectsOn: "CRT FX: ON",
+    effectsOff: "CRT FX: OFF",
   },
   es: {
     chooseLanguage: "ELIGE IDIOMA",
@@ -37,7 +41,9 @@ export const translations: Record<
     hint: "PISTA: 1234",
     confirm: "CONFIRMAR",
     accessDenied: "ACCESO DENEGADO",
-    welcome: "Hola, bienvenido a mi portafolio. Esta es la habitación de Ale",
+    welcome: "Hola, bienvenido a mi portfolio. Revisa mi PC a ver qué encuentras...",
+    effectsOn: "EFECTOS CRT: SÍ",
+    effectsOff: "EFECTOS CRT: NO",
   },
   ca: {
     chooseLanguage: "TRIA IDIOMA",
@@ -47,6 +53,8 @@ export const translations: Record<
     hint: "PISTA: 1234",
     confirm: "CONFIRMAR",
     accessDenied: "ACCÉS DENEGAT",
-    welcome: "Hola, benvingut al meu portafoli. Aquesta és l'habitació de l'Ale",
+    welcome: "Hola, benvingut al meu portfolio. Has mirat ja en el meu ordinador?",
+    effectsOn: "EFECTES CRT: SÍ",
+    effectsOff: "EFECTES CRT: NO",
   },
 };
