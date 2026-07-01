@@ -1,15 +1,84 @@
-import { useMemo } from "react";
-import { useGLTF, Grid } from "@react-three/drei";
+import { useMemo, useState, type ReactNode } from "react";
+import { useGLTF, Grid, Html, Text, Billboard } from "@react-three/drei";
 import { Box3, Vector3 } from "three";
-import type { ThreeEvent } from "@react-three/fiber";
+import { useThree, type ThreeEvent } from "@react-three/fiber";
 import type { FlightPhase } from "./CameraRig";
+import {
+  SCREEN_WORLD_POSITION,
+  SCREEN_WORLD_ROTATION_Y,
+  SCREEN_WORLD_SIZE,
+} from "./screenAnchor";
+
+// CSS width of the billboard-mode Html div; distanceFactor (computed in
+// ScreenPlane, per canvas size) scales it to the plane's actual world size.
+const HTML_WIDTH_PX = 300;
+
+// Wireframe was used to hand-fit SCREEN_WORLD_SIZE/POSITION against the
+// monitor's actual bezel (see screenAnchor.ts) — dialed in now, off.
+const SCREEN_DEBUG = false;
+
+// In-scene hint for the password — a sticky note near the desk, not just
+// backstory. See ARCHITECTURE.md "In-scene note prop".
+function Note() {
+  return (
+    <group position={[0.55, 1.06, 0.55]} rotation={[-Math.PI / 2, 0, 0.25]}>
+      <mesh receiveShadow>
+        <planeGeometry args={[0.16, 0.12]} />
+        <meshStandardMaterial color="#f2e8c9" roughness={0.9} />
+      </mesh>
+      <Text
+        position={[0, 0, 0.001]}
+        fontSize={0.045}
+        color="#2a2a2a"
+        anchorX="center"
+        anchorY="middle"
+      >
+        1234
+      </Text>
+    </group>
+  );
+}
+
+// Neon "welcome" signage behind the desk, visible from the establishing
+// shot. Billboard keeps it always facing the camera regardless of the
+// locked-POV rig's current angle, so no manual facing-rotation math needed.
+// outlineWidth fakes a bold weight (troika's SDF text has no font-weight
+// prop without supplying a separate bold font file).
+function WelcomeSign() {
+  return (
+    <Billboard position={[0, 2.75, -0.6]}>
+      <Text
+        fontSize={0.26}
+        maxWidth={5.5}
+        lineHeight={1.3}
+        textAlign="center"
+        anchorX="center"
+        anchorY="middle"
+        color="#bfe9ff"
+        outlineWidth={0.016}
+        outlineColor="#00e5ec"
+        letterSpacing={0.01}
+      >
+        Hi, welcome to my portfolio. This is Ale's room
+      </Text>
+    </Billboard>
+  );
+}
 
 function Desk() {
   const { scene } = useGLTF("/Adjustable Desk.glb");
-  return <primitive object={scene} position={[0, 0, 0]} scale={1.4} rotation={[0, -Math.PI, 0]} />;
+  return <primitive object={scene} position={[0, 0, 0]} scale={1.4} rotation={[0, Math.PI/2, 0]} />;
 }
 
-function Computer({ onClick }: { onClick: (e: ThreeEvent<MouseEvent>) => void }) {
+function Computer({
+  onClick,
+  onHoverChange,
+  interactive,
+}: {
+  onClick: (e: ThreeEvent<MouseEvent>) => void;
+  onHoverChange: (hovered: boolean) => void;
+  interactive: boolean;
+}) {
   const { scene } = useGLTF("/Computer.glb");
 
   // Desk top is roughly y=0.75 (placeholder Adjustable Desk.glb) — auto-fit
@@ -17,7 +86,7 @@ function Computer({ onClick }: { onClick: (e: ThreeEvent<MouseEvent>) => void })
   // a hardcoded scale/position per model.
   const deskTopY = 0.75 * 1.4 + 0.27; // matches Desk's scale={1.4}, nudged up onto the surface
 
-  const rotationY = Math.PI / 2 - Math.PI;
+  const rotationY = 0;
 
   const { scale, position } = useMemo(() => {
     const box = new Box3().setFromObject(scene);
@@ -53,22 +122,117 @@ function Computer({ onClick }: { onClick: (e: ThreeEvent<MouseEvent>) => void })
         onClick(e);
       }}
       onPointerOver={() => {
+        if (!interactive) return;
         document.body.style.cursor = "pointer";
+        onHoverChange(true);
       }}
       onPointerOut={() => {
+        if (!interactive) return;
         document.body.style.cursor = "auto";
+        onHoverChange(false);
       }}
     />
+  );
+}
+
+// The visible screen surface, kept as its own top-level world-space object
+// (not nested inside Computer's auto-fit group — see screenAnchor.ts for why
+// and how its world position/normal were derived). Doubles as the hover-glow
+// target and the anchor for the password terminal / embedded portfolio.
+function ScreenPlane({
+  onClick,
+  hovered,
+  onHoverChange,
+  screenContent,
+  interactive,
+}: {
+  onClick: (e: ThreeEvent<MouseEvent>) => void;
+  hovered: boolean;
+  onHoverChange: (hovered: boolean) => void;
+  screenContent?: ReactNode;
+  interactive: boolean;
+}) {
+  // drei's billboard-mode Html sizes itself as
+  // (objectScale(camera) * distanceFactor), where objectScale already
+  // cancels out fov/distance to give a true world-size billboard — the only
+  // free variable left is canvas height in css px. Solving for "on-screen
+  // width == SCREEN_WORLD_SIZE[0] projected" gives distanceFactor purely as
+  // (worldWidth * canvasHeightPx) / htmlWidthPx, independent of camera
+  // distance/fov/zoom. A fixed constant here (previously 0.9) only matched
+  // one specific window size — this keeps the embed pinned to the plane's
+  // actual world size regardless of viewport or zoom.
+  const canvasHeight = useThree((state) => state.size.height);
+  const distanceFactor = (SCREEN_WORLD_SIZE[0] * canvasHeight) / HTML_WIDTH_PX;
+
+  return (
+    <group position={SCREEN_WORLD_POSITION} rotation={[0, SCREEN_WORLD_ROTATION_Y, 0]}>
+      <mesh
+        onClick={(e: ThreeEvent<MouseEvent>) => {
+          e.stopPropagation();
+          onClick(e);
+        }}
+        onPointerOver={() => {
+          if (!interactive) return;
+          document.body.style.cursor = "pointer";
+          onHoverChange(true);
+        }}
+        onPointerOut={() => {
+          if (!interactive) return;
+          document.body.style.cursor = "auto";
+          onHoverChange(false);
+        }}
+      >
+        <planeGeometry args={SCREEN_WORLD_SIZE} />
+        <meshStandardMaterial
+          color="#001414"
+          emissive={hovered ? "#00e5ec" : "#00373a"}
+          emissiveIntensity={hovered ? 1.4 : 0.25}
+          wireframe={SCREEN_DEBUG}
+          side={2}
+        />
+        {screenContent && (
+          // Billboard mode (no `transform`), not perspective-matched — fine
+          // here since the locked-POV camera (CameraRig) always looks
+          // nearly straight at this plane by design, so there's no real
+          // skew to correct for. Much more robust than <Html transform>,
+          // which produced broken off-screen CSS matrices in testing.
+          <Html
+            position={[0, 0, 0.01]}
+            center
+            occlude
+            distanceFactor={distanceFactor}
+            style={{
+              width: HTML_WIDTH_PX,
+              height: HTML_WIDTH_PX * (SCREEN_WORLD_SIZE[1] / SCREEN_WORLD_SIZE[0]),
+              pointerEvents: "auto",
+            }}
+          >
+            {screenContent}
+          </Html>
+        )}
+      </mesh>
+    </group>
   );
 }
 
 export default function Scene({
   phase,
   onComputerClick,
+  screenContent,
 }: {
   phase: FlightPhase;
   onComputerClick: () => void;
+  screenContent?: ReactNode;
 }) {
+  const [hovered, setHovered] = useState(false);
+  // Hover-glow only makes sense while picking a station from the general
+  // camera — once flying/arrived/returning ("in the computer"), the screen
+  // is either mid-transition or already the active focus, not a hoverable
+  // menu item.
+  const interactive = phase === "idle";
+  const handleClick = () => interactive && onComputerClick();
+  const handleHoverChange = (h: boolean) => setHovered(interactive && h);
+
   return (
     <>
       <color attach="background" args={["#000000"]} />
@@ -107,7 +271,16 @@ export default function Scene({
       />
 
       <Desk />
-      <Computer onClick={() => phase === "idle" && onComputerClick()} />
+      <Note />
+      <WelcomeSign />
+      <Computer onClick={handleClick} onHoverChange={handleHoverChange} interactive={interactive} />
+      <ScreenPlane
+        onClick={handleClick}
+        hovered={hovered}
+        onHoverChange={handleHoverChange}
+        screenContent={screenContent}
+        interactive={interactive}
+      />
     </>
   );
 }

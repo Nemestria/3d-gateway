@@ -12,51 +12,49 @@ Work through these in order. Each one should run (`pnpm dev`) and visibly demons
 
 **Not done yet:** git init / GitHub repo / Vercel project for this new app — do that whenever ready to go live with it (see "Deploy" in Checkpoint 5).
 
-## Checkpoint 1 — Static scene
+## ✅ Checkpoint 1 — Static scene (done)
 
-**Goal:** a 3D computer sits in a scene, camera shows an establishing shot, nothing is interactive yet.
+- [x] `<Canvas>` mounted in `App.tsx`, lighting (ambient + spot)
+- [x] Real GLB models in use (`Computer.glb`, `Adjustable Desk.glb`) — model-source decision resolved, see ARCHITECTURE.md
+- [x] Floor/desk plane + grid, dark environment with fog
+- [x] Visible 3D note prop near the desk with "1234" on it (`Note` in `src/Scene.tsx`) — in-scene justification for the password, see ARCHITECTURE.md "In-scene note prop"
 
-- [ ] `<Canvas>` mounted in `App.tsx`, basic lighting (ambient + directional/point)
-- [ ] Computer model in scene — **use the procedural placeholder option from ARCHITECTURE.md first** (primitive boxes/cylinders), don't block this checkpoint on Alejandro's Blender export
-- [ ] Static or gently orbiting establishing-shot camera (drei's `<OrbitControls>` is fine for dev/debugging, can be removed/disabled later)
-- [ ] Floor/desk plane so the computer doesn't float in void; basic environment (solid color or simple gradient background, no need for a full room yet)
+## ✅ Checkpoint 2 — Click-to-fly + locked POV camera (done, chromatic aberration still open)
 
-**Definition of done:** `pnpm dev`, see a computer-shaped object in a lit scene, can orbit-inspect it.
+**Goal:** clicking the computer flies the camera into a close-up "inside the screen" view with the wide-angle + chromatic aberration effect. Camera is a locked POV throughout, not a free orbit inspector — see ARCHITECTURE.md "Camera model."
 
-## Checkpoint 2 — Click-to-fly interaction
+- [x] Raycast click handler on the computer mesh
+- [x] Camera animation: eased position/lookAt interpolation from establishing shot → screen close-up
+- [x] FOV ramps wider during the flight (50° → 95°)
+- [x] Locked-POV rig (`src/CameraRig.tsx`, replaces the old free-orbit `<CameraControls>`): drag rotates yaw/pitch within a clamped range, mouse-near-edge adds small parallax look-offset, zoom clamped tight; clamp tightens further once "arrived". Verified in-browser: drag visibly pans the view, wheel visibly dollies a little, both within a small range.
+- [x] Hover the computer → screen-plane emissive glows on; hover out → off (`ScreenPlane` in `src/Scene.tsx`, since `Monitor.glb` has no separate screen material — see ARCHITECTURE.md). Verified via the live material's emissive color toggling on hover/unhover.
+- [ ] `<EffectComposer>` + `<ChromaticAberration>` — **still not implemented**, out of scope for this pass
+- [x] Re-clicking during/after the flight doesn't restart or break the animation
 
-**Goal:** clicking the computer flies the camera into a close-up "inside the screen" view with the wide-angle + chromatic aberration effect.
+**Definition of done:** click the computer, watch a deliberate, non-janky camera flight into a locked close POV; hovering the computer beforehand visibly glows the screen. (Chromatic aberration still pending.)
 
-- [ ] Raycast click handler on the computer mesh (R3F `onClick` on the relevant mesh/group)
-- [ ] Camera animation: eased position/lookAt interpolation from establishing shot → screen close-up (see ARCHITECTURE.md for the lerp/GSAP note)
-- [ ] FOV ramps wider during the flight
-- [ ] `<EffectComposer>` + `<ChromaticAberration>` added, offset ramping with flight progress (subtle → peak → settle)
-- [ ] Re-clicking during/after the flight doesn't restart or break the animation (guard with a state flag)
+## ✅ Checkpoint 3 — Password terminal, anchored to the screen (done)
 
-**Definition of done:** click the computer, watch a deliberate, non-janky camera flight that ends close to the screen with visible chromatic aberration.
+**Goal:** once the camera arrives, a password prompt appears glued to the monitor's screen — not a full-page overlay — styled like a retro terminal.
 
-## Checkpoint 3 — Password terminal overlay
+- [x] Prompt appears after the camera flight completes
+- [x] Styled with the portfolio's font stack (`Press Start 2P` / `Share Tech Mono`) — already loaded via `src/index.css`'s Google Fonts `@import`
+- [x] Controlled input, masked characters, "ACCESS DENIED" shake on wrong password, retry with no lockout
+- [x] Anchored to the screen-plane via drei's `<Html>` (billboard mode, not `transform` — `<Html transform>` produced broken off-screen CSS matrices in testing; billboard is fine since the locked-POV camera always looks ~straight at the screen by design). Verified visually: terminal renders centered inside the monitor's screen.
+- [x] Right password → proceeds to Checkpoint 4
 
-**Goal:** once the camera arrives, an HTML password prompt appears, styled like a retro terminal.
+**Definition of done:** the terminal visually sits inside the monitor's screen, not floating over the whole page; wrong password shows a clear rejection; right password proceeds. Verified end-to-end in-browser.
 
-- [ ] Overlay fades in after the camera flight completes (not before — don't show it during the flight)
-- [ ] Styled with the portfolio's font stack (`Press Start 2P` / `Share Tech Mono`) for visual continuity — see DESIGN.md
-- [ ] Controlled input, blinking cursor, masked or echoed characters (pick one per DESIGN.md)
-- [ ] Wrong password → shake/glitch feedback + "ACCESS DENIED", input clears, can retry immediately (no lockout/rate limiting)
-- [ ] Right password → proceeds to Checkpoint 4 (don't build the redirect yet if not ready, just log/console it)
+## ✅ Checkpoint 4 — Success transition + portfolio embedded in the screen (done, exit transition still open)
 
-**Definition of done:** can type the wrong password and see a clear rejection, and the right password is detectably different (e.g. console log) without yet leaving the page.
+**Goal:** correct password makes the live portfolio appear *inside the computer's screen*, camera/desk staying visible around it — not a full-page redirect or full-page iframe (see ARCHITECTURE.md, this supersedes the original real-navigation plan).
 
-## Checkpoint 4 — Success transition + handoff to the portfolio
+- [ ] Exit transition on success (brief screen flash/glitch on the screen-plane) — not yet implemented
+- [x] `<iframe src={PORTFOLIO_URL}>` sized to the screen-plane's `<Html>` anchor (same anchor the password terminal uses), not full-page
+- [x] URL is environment-driven (`VITE_PORTFOLIO_URL`, falls back to the live Vercel URL)
+- [x] Confirmed: the portfolio's language-select splash screen renders legibly at the monitor-rectangle embed size — verified in-browser with the real password flow (typed 1234, saw the live portfolio's "ELIGE IDIOMA / SELECT LANGUAGE" screen render inside the monitor)
 
-**Goal:** correct password actually takes the visitor to the live portfolio.
-
-- [ ] Exit transition on success (screen flash/glitch — keep it short, don't make visitors wait)
-- [ ] `window.location.href` (or equivalent real navigation) to the portfolio URL
-- [ ] URL should be environment-driven (dev: `http://localhost:5173` or whatever the portfolio's dev server runs on; prod: the live Vercel URL) — don't hardcode the prod URL in a way that breaks local testing of the full flow
-- [ ] Confirm: does NOT touch `mainRepo` at all — verify the portfolio's existing splash screen still appears normally when arrived at via this gateway (no attempt to skip/merge the two intros yet, that's a polish decision for later if desired)
-
-**Definition of done:** full flow works end-to-end locally — click computer → fly in → type real password → land on the portfolio (running its own dev server, or the live URL).
+**Definition of done:** full flow works end-to-end — click computer → fly in → hover/click glow → type real password → portfolio renders live inside the monitor's screen while the 3D scene stays visible around it. Verified end-to-end in-browser.
 
 ## Checkpoint 5 — Polish, fallback, deploy
 

@@ -28,24 +28,24 @@ export default function PasswordTerminal({
   return (
     <div
       style={{
-        position: "absolute",
-        inset: 0,
+        width: "100%",
+        height: "100%",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "rgba(0,0,0,0.35)",
+        background: "#020a0a",
         animation: "term-fade-in 0.6s ease both",
       }}
     >
       <form
         onSubmit={submit}
         style={{
-          width: 420,
-          maxWidth: "90vw",
+          width: "82%",
           background: "rgba(5, 12, 12, 0.92)",
           border: `1px solid ${ACCENT}`,
           boxShadow: `0 0 24px ${ACCENT}55`,
           padding: "24px 20px",
+          transform: "scale(0.6)",
           animation: denied ? "term-shake 0.3s ease" : undefined,
         }}
       >
@@ -100,11 +100,11 @@ export default function PasswordTerminal({
           to { opacity: 1; }
         }
         @keyframes term-shake {
-          0%, 100% { transform: translateX(0); }
-          20% { transform: translateX(-10px); }
-          40% { transform: translateX(8px); }
-          60% { transform: translateX(-6px); }
-          80% { transform: translateX(4px); }
+          0%, 100% { transform: scale(0.6) translateX(0); }
+          20% { transform: scale(0.6) translateX(-10px); }
+          40% { transform: scale(0.6) translateX(8px); }
+          60% { transform: scale(0.6) translateX(-6px); }
+          80% { transform: scale(0.6) translateX(4px); }
         }
       `}</style>
     </div>
