@@ -8,21 +8,15 @@ import { Vector2 } from "three";
 // the same way the library wraps its own built-ins.
 const LensDistortion = wrapEffect(LensDistortionEffect);
 
-const DISTORTION = new Vector2(0.12, 0.12);
+const DISTORTION_IDLE   = new Vector2(0.12, 0.12); // full wide-lens warp
+const DISTORTION_CLOSE  = new Vector2(0.03, 0.03); // subtle warp at screen
 
-// Barrel/fisheye warp of the 3D scene only — this has to stay Three.js-side
-// since geometrically distorting arbitrary DOM (and the cross-origin
-// portfolio iframe once unlocked) isn't practical the way warping a 3D
-// render is. Chromatic aberration, scanlines, and the vignette moved to a
-// page-wide CSS/SVG overlay instead (see CrtOverlay.tsx, applied in
-// App.tsx) so those affect literally everything on screen, not just the
-// canvas — this component used to include them too, which would have
-// doubled up on the parts of the frame the canvas covers.
-export default function PostFX({ enabled }: { enabled: boolean }) {
+export default function PostFX({ enabled, atScreen = false }: { enabled: boolean; atScreen?: boolean }) {
   if (!enabled) return null;
+  const distortion = atScreen ? DISTORTION_CLOSE : DISTORTION_IDLE;
   return (
     <EffectComposer multisampling={0}>
-      <LensDistortion distortion={DISTORTION} />
+      <LensDistortion distortion={distortion} />
     </EffectComposer>
   );
 }

@@ -135,7 +135,7 @@ function App() {
               onReturned={() => setPhase("idle")}
             />
           </Suspense>
-          <PostFX enabled={fxEnabled} />
+          <PostFX enabled={fxEnabled} atScreen={phase === "arrived"} />
         </Canvas>
 
         {phase !== "idle" && phase !== "returning" && (
@@ -182,7 +182,7 @@ function App() {
         {!lang && <LanguageGate onDone={setLang} />}
       </div>
 
-      {fxEnabled && <CrtOverlay />}
+      {fxEnabled && <CrtOverlay atScreen={phase === "arrived"} />}
     </div>
   );
 }
