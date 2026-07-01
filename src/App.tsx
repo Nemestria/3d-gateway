@@ -101,6 +101,7 @@ function App() {
             onComputerClick={() => setPhase("flying")}
             screenContent={screenContent}
             welcomeText={t.welcome}
+            showWelcome={lang !== null}
           />
           <CameraRig
             phase={phase}

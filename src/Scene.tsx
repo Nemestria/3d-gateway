@@ -224,11 +224,15 @@ export default function Scene({
   onComputerClick,
   screenContent,
   welcomeText,
+  showWelcome,
 }: {
   phase: FlightPhase;
   onComputerClick: () => void;
   screenContent?: ReactNode;
   welcomeText: string;
+  // False while the language-select gate is still up (App.tsx) — the sign
+  // shouldn't appear until the visitor has actually entered the room.
+  showWelcome: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
   // Hover-glow only makes sense while picking a station from the general
@@ -239,11 +243,15 @@ export default function Scene({
 
   // WelcomeSign is a one-shot greeting: gone after 15s, or immediately once
   // the visitor enters a station for the first time (whichever comes first).
+  // The 15s clock only starts once showWelcome flips true (i.e. once the
+  // language gate is dismissed) — otherwise it could burn down while the
+  // visitor is still picking a language.
   const [signDismissed, setSignDismissed] = useState(false);
   useEffect(() => {
+    if (!showWelcome) return;
     const timer = setTimeout(() => setSignDismissed(true), 15000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [showWelcome]);
 
   const handleClick = () => {
     if (!interactive) return;
@@ -291,7 +299,7 @@ export default function Scene({
 
       <Desk />
       <Note />
-      {!signDismissed && <WelcomeSign text={welcomeText} />}
+      {showWelcome && !signDismissed && <WelcomeSign text={welcomeText} />}
       <Computer onClick={handleClick} onHoverChange={handleHoverChange} interactive={interactive} />
       <ScreenPlane
         onClick={handleClick}
