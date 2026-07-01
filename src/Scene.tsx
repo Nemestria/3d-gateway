@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useGLTF, Grid, Html, Text, Billboard } from "@react-three/drei";
-import { Box3, Vector3 } from "three";
+import { useGLTF, Html, Text, Billboard } from "@react-three/drei";
+import { Box3, CanvasTexture, RepeatWrapping, Vector3 } from "three";
 import { useThree, type ThreeEvent } from "@react-three/fiber";
 import type { FlightPhase } from "./CameraRig";
 import {
@@ -66,6 +66,42 @@ function WelcomeSign({ text }: { text: string }) {
         </div>
       </Html>
     </Billboard>
+  );
+}
+
+// Office tile floor — a single mesh with a procedural repeating-tile
+// texture, replacing the old solid-floor-plane + drei <Grid> combo. Those
+// were two separate planes ~0.002 units apart, which z-fought (flickered)
+// at distance since depth-buffer precision drops off with distance in a
+// perspective projection; one textured mesh has no second plane to fight.
+function OfficeFloor() {
+  const texture = useMemo(() => {
+    const size = 128;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d")!;
+    // Grout color fills the whole tile; the inset tile face leaves a
+    // uniform grout line visible on every edge when repeated.
+    ctx.fillStyle = "#23272b";
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = "#3a4046";
+    const inset = 5;
+    ctx.fillRect(inset, inset, size - inset * 2, size - inset * 2);
+
+    const tex = new CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = RepeatWrapping;
+    // High repeat count on the 200x200 floor plane = small tiles (~1.4
+    // world units each), office-tile scale rather than a warehouse grid.
+    tex.repeat.set(140, 140);
+    return tex;
+  }, []);
+
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <planeGeometry args={[200, 200]} />
+      <meshStandardMaterial map={texture} roughness={0.95} />
+    </mesh>
   );
 }
 
@@ -278,24 +314,7 @@ export default function Scene({
         target-position={[0, 0.9, 0]}
       />
 
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[200, 200]} />
-        <meshStandardMaterial color="#2b2622" roughness={1} />
-      </mesh>
-
-      <Grid
-        position={[0, 0.002, 0]}
-        args={[200, 200]}
-        cellSize={1}
-        cellThickness={1}
-        cellColor="#3d352c"
-        sectionSize={4}
-        sectionThickness={1}
-        sectionColor="#4a3f33"
-        fadeDistance={25}
-        fadeStrength={1.5}
-        infiniteGrid
-      />
+      <OfficeFloor />
 
       <Desk />
       <Note />
