@@ -90,6 +90,23 @@ export default function PasswordTerminal({
         >
           HINT: 1234
         </div>
+        <button
+          type="submit"
+          style={{
+            width: "100%",
+            marginTop: 16,
+            background: "transparent",
+            border: `1px solid ${ACCENT}`,
+            color: ACCENT,
+            fontFamily: PX,
+            fontSize: 11,
+            letterSpacing: 1,
+            padding: "10px 0",
+            cursor: "pointer",
+          }}
+        >
+          CONFIRM
+        </button>
         {denied && (
           <div
             style={{
