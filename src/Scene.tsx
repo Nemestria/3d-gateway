@@ -21,7 +21,7 @@ const SCREEN_DEBUG = false;
 // backstory. See ARCHITECTURE.md "In-scene note prop".
 function Note() {
   return (
-    <group position={[0.55, 1.06, 0.55]} rotation={[-Math.PI / 2, 0, 0.25]}>
+    <group position={[0.2, 1.6, 0.1]} rotation={[0, 0, 0.25]}>
       <mesh receiveShadow>
         <planeGeometry args={[0.16, 0.12]} />
         <meshStandardMaterial color="#f2e8c9" roughness={0.9} />
