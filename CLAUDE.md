@@ -58,4 +58,4 @@ Checkpoints 0-4 done, Checkpoint 5 mostly done, all verified end-to-end in-brows
 **Still open:** exit-transition flash on password success (Checkpoint 4), mobile/low-end fallback, a real performance pass, swapping the placeholder model for Alejandro's own, and the domain/URL decision — see CHECKPOINTS.md Checkpoint 5 for the full list.
 
 ## Deploy
-This repo (`github.com/Nemestria/3d-gateway`) is linked to a Vercel project (`nemestria-world/3d-gateway`) that auto-deploys on every push to `master` — no manual `vercel --prod` needed. `vercel ls` (CLI already authenticated in this environment) shows recent deployments if you need to confirm a push went live.
+This repo (`github.com/Nemestria/3d-gateway`, repo name unchanged) is linked to a Vercel project named `alejandro-sancho` (`nemestria-world/alejandro-sancho`, live at `alejandro-sancho.vercel.app`) that auto-deploys on every push to `master` — no manual `vercel --prod` needed. `vercel ls` (CLI already authenticated in this environment) shows recent deployments if you need to confirm a push went live.
