@@ -84,7 +84,7 @@ export default function LanguageGate({ onDone }: { onDone: (lang: Lang) => void 
         {LANGUAGES.map(({ code, label }) => (
           <button
             key={code}
-            onClick={() => setChosen(code)}
+            onClick={() => { localStorage.setItem("vertigo-lang", code); setChosen(code); }}
             style={{
               width: "100%",
               background: chosen === code ? ACCENT : "transparent",

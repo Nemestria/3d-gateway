@@ -19,6 +19,7 @@ export const translations: Record<
     welcome: string;
     effectsOn: string;
     effectsOff: string;
+    controls: { hint: string; title: string; clickComputer: string; password: string; back: string; crt: string; dismiss: string; };
   }
 > = {
   en: {
@@ -32,6 +33,7 @@ export const translations: Record<
     welcome: "Hi, welcome to my portfolio. Check my computer, please!",
     effectsOn: "CRT FX: ON",
     effectsOff: "CRT FX: OFF",
+    controls: { hint: "CONTROLS", title: "CONTROLS", clickComputer: "click the computer to approach", password: "check the note on the desk", back: "return to the scene", crt: "toggle vintage lens effect", dismiss: "[ESC or click to close]" },
   },
   es: {
     chooseLanguage: "ELIGE IDIOMA",
@@ -44,6 +46,7 @@ export const translations: Record<
     welcome: "Hola, bienvenido a mi portfolio. Revisa mi PC a ver qué encuentras...",
     effectsOn: "EFECTOS CRT: SÍ",
     effectsOff: "EFECTOS CRT: NO",
+    controls: { hint: "CONTROLES", title: "CONTROLES", clickComputer: "haz clic en el ordenador para acercarte", password: "revisa la nota encima del escritorio", back: "volver a la escena", crt: "activar/desactivar efecto de lente retro", dismiss: "[ESC o clic para cerrar]" },
   },
   ca: {
     chooseLanguage: "TRIA IDIOMA",
@@ -56,5 +59,6 @@ export const translations: Record<
     welcome: "Hola, benvingut al meu portfolio. Has mirat ja en el meu ordinador?",
     effectsOn: "EFECTES CRT: SÍ",
     effectsOff: "EFECTES CRT: NO",
+    controls: { hint: "CONTROLS", title: "CONTROLS", clickComputer: "clica a l'ordinador per apropar-te", password: "revisa la nota sobre l'escriptori", back: "tornar a l'escena", crt: "activar/desactivar efecte de lent retro", dismiss: "[ESC o clic per tancar]" },
   },
 };

@@ -81,7 +81,11 @@ function App() {
   // way the portfolio's own splash screen does (see ARCHITECTURE.md), and
   // doubles as the loading screen for the GLB models (useProgress in
   // LanguageGate tracks the same THREE.DefaultLoadingManager useGLTF uses).
-  const [lang, setLang] = useState<Lang | null>(null);
+  const [lang, setLang] = useState<Lang | null>(() => {
+    const saved = localStorage.getItem("vertigo-lang") as Lang | null;
+    return (saved === "es" || saved === "en" || saved === "ca") ? saved : null;
+  });
+  const [showHelp, setShowHelp] = useState(false);
   // Vintage CRT/wide-lens post-processing (PostFX.tsx), toggleable from a
   // settings button — persisted so the choice survives a reload.
   const [fxEnabled, setFxEnabled] = useState(
@@ -90,6 +94,21 @@ function App() {
   useEffect(() => {
     localStorage.setItem(FX_STORAGE_KEY, String(fxEnabled));
   }, [fxEnabled]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (showHelp) { setShowHelp(false); return; }
+        if (phase === "arrived" || phase === "flying") {
+          setUnlocked(false); setPhase("returning");
+        } else {
+          setShowHelp(v => !v);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [phase, showHelp]);
 
   const t = translations[lang ?? "en"];
 
@@ -180,6 +199,35 @@ function App() {
         </button>
 
         {!lang && <LanguageGate onDone={setLang} />}
+
+        {/* Subtle ESC hint — always visible in idle, fades when not needed */}
+        {lang && phase === "idle" && !showHelp && (
+          <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", fontFamily: "monospace", fontSize: 11, color: "rgba(191,233,255,0.35)", letterSpacing: 2, pointerEvents: "none", userSelect: "none" }}>
+            [ESC] {t.controls.hint}
+          </div>
+        )}
+
+        {/* Controls overlay — shown on ESC */}
+        {showHelp && (
+          <div
+            onClick={() => setShowHelp(false)}
+            style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.55)", zIndex: 50 }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{ fontFamily: "monospace", color: "#bfe9ff", border: "1px solid rgba(191,233,255,0.3)", background: "rgba(0,10,15,0.85)", padding: "28px 36px", maxWidth: 360, lineHeight: 2, letterSpacing: 1 }}
+            >
+              <div style={{ fontSize: 10, marginBottom: 14, color: "#7ecfef", letterSpacing: 3 }}>— {t.controls.title} —</div>
+              <div style={{ fontSize: 10 }}>
+                <div><span style={{ color: "#7ecfef" }}>CLICK</span> {" "}{t.controls.clickComputer}</div>
+                <div><span style={{ color: "#7ecfef" }}>PASSWORD</span> {" "}{t.controls.password}</div>
+                <div><span style={{ color: "#7ecfef" }}>← / ESC</span> {" "}{t.controls.back}</div>
+                <div><span style={{ color: "#7ecfef" }}>CRT</span> {" "}{t.controls.crt}</div>
+              </div>
+              <div style={{ fontSize: 9, marginTop: 16, color: "rgba(191,233,255,0.35)" }}>{t.controls.dismiss}</div>
+            </div>
+          </div>
+        )}
       </div>
 
       {fxEnabled && <CrtOverlay atScreen={phase === "arrived"} />}
