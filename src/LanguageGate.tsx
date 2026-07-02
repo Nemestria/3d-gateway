@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useProgress } from "@react-three/drei";
 import { LANGUAGES, translations, type Lang } from "./i18n";
 
@@ -6,19 +6,54 @@ const PX = "'Press Start 2P', monospace";
 const MONO = "'Share Tech Mono', monospace";
 const ACCENT = "#00b9be";
 
-// Shown until the visitor picks a language AND asset loading (the GLB
-// models, preloaded from Scene.tsx) finishes — whichever takes longer.
-// useProgress tracks THREE.DefaultLoadingManager, the same one useGLTF uses,
-// so this reflects real load progress rather than a fake timer.
+const GLITCH_CSS = `
+@keyframes lg-glitch {
+  0%   { transform: translateX(0) skewX(0deg);   filter: none;                                  opacity: 1;    }
+  15%  { transform: translateX(-8px) skewX(-5deg); filter: hue-rotate(90deg) saturate(4) brightness(1.5); opacity: 0.7;  }
+  35%  { transform: translateX(8px)  skewX(5deg);  filter: hue-rotate(270deg) saturate(3);       opacity: 0.85; }
+  55%  { transform: translateX(-4px) skewX(-2deg); filter: hue-rotate(180deg) brightness(1.3);  opacity: 0.6;  }
+  75%  { transform: translateX(4px);               filter: none;                                  opacity: 0.9;  }
+  100% { transform: translateX(0);                 filter: none;                                  opacity: 1;    }
+}
+.lg-glitching {
+  animation: lg-glitch 0.22s steps(5) forwards;
+}
+`;
+
+const CYCLE_LANGS: Lang[] = ["en", "es", "ca"];
+
 export default function LanguageGate({ onDone }: { onDone: (lang: Lang) => void }) {
   const { progress } = useProgress();
   const [chosen, setChosen] = useState<Lang | null>(null);
+
+  // Cycling state — only active before a language is chosen
+  const [cycleIdx, setCycleIdx] = useState(0);
+  const [glitching, setGlitching] = useState(false);
+  const glitchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (chosen) return; // stop cycling once user picks
+    const iv = setInterval(() => {
+      setGlitching(true);
+      glitchTimer.current = setTimeout(() => {
+        setCycleIdx(prev => (prev + 1) % 3);
+        setGlitching(false);
+      }, 220);
+    }, 2200);
+    return () => {
+      clearInterval(iv);
+      if (glitchTimer.current) clearTimeout(glitchTimer.current);
+    };
+  }, [chosen]);
 
   useEffect(() => {
     if (chosen && progress >= 100) onDone(chosen);
   }, [chosen, progress, onDone]);
 
-  const label = chosen ? translations[chosen].loading : translations.en.chooseLanguage;
+  const cycledLang = CYCLE_LANGS[cycleIdx];
+  const topLabel = chosen
+    ? translations[chosen].loading
+    : translations[cycledLang].chooseLanguage;
 
   return (
     <div
@@ -34,8 +69,15 @@ export default function LanguageGate({ onDone }: { onDone: (lang: Lang) => void 
         zIndex: 10,
       }}
     >
-      <div style={{ fontFamily: PX, fontSize: 14, color: ACCENT, letterSpacing: 1 }}>
-        {label}
+      {/* Inject glitch keyframe */}
+      <style>{GLITCH_CSS}</style>
+
+      {/* Top label — cycles with glitch; frozen once language chosen */}
+      <div
+        className={glitching ? "lg-glitching" : undefined}
+        style={{ fontFamily: PX, fontSize: 14, color: ACCENT, letterSpacing: 1 }}
+      >
+        {topLabel}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, width: 260 }}>
