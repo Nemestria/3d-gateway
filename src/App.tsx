@@ -183,41 +183,22 @@ function App() {
           </button>
         )}
 
-        {phase === "idle" && (
+        <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 8 }}>
+          {phase === "idle" && (
+            <button
+              onClick={() => setCamResetKey(k => k + 1)}
+              style={{ fontFamily: "monospace", background: "rgba(0,0,0,0.6)", color: "#bfe9ff", border: "1px solid #bfe9ff", padding: "8px 14px", cursor: "pointer" }}
+            >
+              {t.resetCamera}
+            </button>
+          )}
           <button
-            onClick={() => setCamResetKey(k => k + 1)}
-            style={{
-              position: "absolute",
-              top: 16,
-              right: 130,
-              fontFamily: "monospace",
-              background: "rgba(0,0,0,0.6)",
-              color: "#bfe9ff",
-              border: "1px solid #bfe9ff",
-              padding: "8px 14px",
-              cursor: "pointer",
-            }}
+            onClick={() => setFxEnabled((v) => !v)}
+            style={{ fontFamily: "monospace", background: "rgba(0,0,0,0.6)", color: "#bfe9ff", border: "1px solid #bfe9ff", padding: "8px 14px", cursor: "pointer" }}
           >
-            {t.resetCamera}
+            {fxEnabled ? t.effectsOn : t.effectsOff}
           </button>
-        )}
-
-        <button
-          onClick={() => setFxEnabled((v) => !v)}
-          style={{
-            position: "absolute",
-            top: 16,
-            right: 16,
-            fontFamily: "monospace",
-            background: "rgba(0,0,0,0.6)",
-            color: "#bfe9ff",
-            border: "1px solid #bfe9ff",
-            padding: "8px 14px",
-            cursor: "pointer",
-          }}
-        >
-          {fxEnabled ? t.effectsOn : t.effectsOff}
-        </button>
+        </div>
 
         {!lang && <LanguageGate onDone={setLang} />}
 
@@ -236,16 +217,16 @@ function App() {
           >
             <div
               onClick={e => e.stopPropagation()}
-              style={{ fontFamily: "monospace", color: "#bfe9ff", border: "1px solid rgba(191,233,255,0.3)", background: "rgba(0,10,15,0.85)", padding: "28px 36px", maxWidth: 360, lineHeight: 2, letterSpacing: 1 }}
+              style={{ fontFamily: "monospace", color: "#bfe9ff", border: "1px solid rgba(191,233,255,0.3)", background: "rgba(0,10,15,0.85)", padding: "36px 48px", maxWidth: 440, lineHeight: 2.1, letterSpacing: 1 }}
             >
-              <div style={{ fontSize: 10, marginBottom: 14, color: "#7ecfef", letterSpacing: 3 }}>— {t.controls.title} —</div>
-              <div style={{ fontSize: 10 }}>
+              <div style={{ fontSize: 13, marginBottom: 18, color: "#7ecfef", letterSpacing: 3 }}>— {t.controls.title} —</div>
+              <div style={{ fontSize: 13 }}>
                 <div><span style={{ color: "#7ecfef" }}>CLICK</span> {" "}{t.controls.clickComputer}</div>
                 <div><span style={{ color: "#7ecfef" }}>PASSWORD</span> {" "}{t.controls.password}</div>
                 <div><span style={{ color: "#7ecfef" }}>← / ESC</span> {" "}{t.controls.back}</div>
                 <div><span style={{ color: "#7ecfef" }}>CRT</span> {" "}{t.controls.crt}</div>
               </div>
-              <div style={{ fontSize: 9, marginTop: 16, color: "rgba(191,233,255,0.35)" }}>{t.controls.dismiss}</div>
+              <div style={{ fontSize: 11, marginTop: 20, color: "rgba(191,233,255,0.35)" }}>{t.controls.dismiss}</div>
             </div>
           </div>
         )}
