@@ -86,6 +86,7 @@ function App() {
     return (saved === "es" || saved === "en" || saved === "ca") ? saved : null;
   });
   const [showHelp, setShowHelp] = useState(false);
+  const [camResetKey, setCamResetKey] = useState(0);
   // Vintage CRT/wide-lens post-processing (PostFX.tsx), toggleable from a
   // settings button — persisted so the choice survives a reload.
   const [fxEnabled, setFxEnabled] = useState(
@@ -152,6 +153,7 @@ function App() {
               phase={phase}
               onArrived={() => setPhase("arrived")}
               onReturned={() => setPhase("idle")}
+              resetKey={camResetKey}
             />
           </Suspense>
           <PostFX enabled={fxEnabled} atScreen={phase === "arrived"} />
@@ -178,6 +180,25 @@ function App() {
             }}
           >
             {t.back}
+          </button>
+        )}
+
+        {phase === "idle" && (
+          <button
+            onClick={() => setCamResetKey(k => k + 1)}
+            style={{
+              position: "absolute",
+              top: 16,
+              right: 130,
+              fontFamily: "monospace",
+              background: "rgba(0,0,0,0.6)",
+              color: "#bfe9ff",
+              border: "1px solid #bfe9ff",
+              padding: "8px 14px",
+              cursor: "pointer",
+            }}
+          >
+            {t.resetCamera}
           </button>
         )}
 

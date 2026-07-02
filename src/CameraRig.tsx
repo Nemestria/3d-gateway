@@ -48,10 +48,12 @@ export default function CameraRig({
   phase,
   onArrived,
   onReturned,
+  resetKey = 0,
 }: {
   phase: FlightPhase;
   onArrived: () => void;
   onReturned: () => void;
+  resetKey?: number;
 }) {
   const { camera, gl, scene } = useThree();
   useEffect(() => {
@@ -77,6 +79,13 @@ export default function CameraRig({
   const zoomSmooth = useRef(0);
   const edgeXSmooth = useRef(0);
   const edgeYSmooth = useRef(0);
+
+  useEffect(() => {
+    if (resetKey === 0) return;
+    dragYaw.current = 0; dragPitch.current = 0; zoomOffset.current = 0;
+    yawSmooth.current = 0; pitchSmooth.current = 0; zoomSmooth.current = 0;
+    edgeXSmooth.current = 0; edgeYSmooth.current = 0;
+  }, [resetKey]);
 
   useEffect(() => {
     const dom = gl.domElement;
