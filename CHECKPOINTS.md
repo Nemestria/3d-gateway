@@ -66,7 +66,7 @@ Work through these in order. Each one should run (`pnpm dev`) and visibly demons
 - [ ] Mobile/low-end fallback per the open decision in ARCHITECTURE.md (skip 3D entirely on detected low-end/no-WebGL, or accept desktop-only — confirm with Alejandro which)
 - [ ] Performance pass: check frame rate with the final model + effects on a mid-range machine, not just dev hardware
 - [ ] Swap procedural placeholder for Alejandro's real model, if/when delivered
-- [x] git init this repo, pushed to its own GitHub repo (`github.com/Nemestria/3d-gateway`, repo name unchanged)
+- [x] git init this repo, pushed to its own GitHub repo (`github.com/Nemestria/alejandro-sancho`, renamed from `3d-gateway` to match the Vercel project)
 - [x] Vercel project linked and renamed to `nemestria-world/alejandro-sancho` (live at `alejandro-sancho.vercel.app`, was `3d-gateway.vercel.app`), auto-deploys on every push to `master`
 - [ ] Decide & wire the final redirect URL (custom domain question from ARCHITECTURE.md, if relevant by this point)
 - [x] Internationalization: EN/ES/CA via `src/i18n.ts`, covering every piece of app-owned UI text (not the embedded portfolio's own separate language selector)
