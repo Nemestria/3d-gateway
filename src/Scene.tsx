@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useGLTF, Html, Text, Billboard } from "@react-three/drei";
-import { Box3, CanvasTexture, RepeatWrapping, Vector3 } from "three";
+import { Box3, CanvasTexture, Object3D, RepeatWrapping, Vector3, type Group, type Mesh } from "three";
 import { useThree, type ThreeEvent } from "@react-three/fiber";
 import type { FlightPhase } from "./CameraRig";
 import {
@@ -175,6 +175,131 @@ function Computer({
   );
 }
 
+interface ArcadeNodes {
+  scene: Group;
+  nodes: {
+    Arcade: Mesh;
+    CoinInserter: Mesh;
+    Joystick: Mesh;
+    A_button: Mesh;
+    B_button: Mesh;
+    X_button: Mesh;
+    Y_button: Mesh;
+    ArcadeScreen: Mesh;
+  };
+}
+
+// Second station, alongside Computer/ScreenPlane — a coin-op cabinet whose
+// screen will (Phase 5 of the arcade plan, not yet wired here) use a
+// genuine WebGL render-to-texture instead of the computer's DOM/iframe
+// screen. Placement below is a first guess — tune once visible, same spirit
+// as Computer's own hand-picked deskTopY.
+const ARCADE_POSITION: [number, number, number] = [-2.6, 0, 0.6];
+// The model's front is its local -Z (confirmed live: at rotY=0.6 the camera
+// saw its back), so facing the establishing camera needs the extra half-turn.
+const ARCADE_ROTATION_Y = 0.6 + Math.PI;
+const ARCADE_TARGET_HEIGHT = 2.2; // meters — bumped 30% from 1.7 per feedback
+
+// The arcade's own pool of light — without it the cabinet is black on black
+// (near-zero ambient + fog) and effectively invisible. The GLB even ships a
+// "Fake Light" empty above the cabinet hinting the model expects this.
+// Magenta-tinted to read as a distinct station from the desk's cool blue.
+//
+// The target must be an explicit Object3D rendered into the scene graph:
+// the `target-position` shorthand alone leaves the default target orphaned
+// (its matrixWorld never updates), so the light would silently keep aiming
+// at the world origin — i.e. the desk, not the arcade. The desk's own spot
+// gets away with that because it points near the origin anyway.
+function ArcadeSpot() {
+  const target = useMemo(() => {
+    const o = new Object3D();
+    o.position.set(ARCADE_POSITION[0], 0.9, ARCADE_POSITION[2]);
+    return o;
+  }, []);
+  return (
+    <>
+      <primitive object={target} />
+      <spotLight
+        position={[ARCADE_POSITION[0], 6, ARCADE_POSITION[2] + 0.5]}
+        angle={0.35}
+        penumbra={0.6}
+        intensity={110}
+        distance={12}
+        decay={2}
+        color="#f2bfe9"
+        castShadow
+        target={target}
+      />
+    </>
+  );
+}
+
+function Arcade({
+  onClick,
+  onHoverChange,
+  interactive,
+}: {
+  onClick: (e: ThreeEvent<MouseEvent>) => void;
+  onHoverChange: (hovered: boolean) => void;
+  interactive: boolean;
+}) {
+  const { scene } = useGLTF("/ArcadeFolio.glb") as unknown as ArcadeNodes;
+
+  // Same auto-fit-by-bounding-box approach as Computer() below — scale to a
+  // target height, then position so the model's own base sits on the floor
+  // at ARCADE_POSITION rather than guessing a hardcoded scale per model.
+  const { scale, position } = useMemo(() => {
+    const box = new Box3().setFromObject(scene);
+    const size = new Vector3();
+    box.getSize(size);
+    const s = size.y > 0 ? ARCADE_TARGET_HEIGHT / size.y : 1;
+    const center = new Vector3();
+    box.getCenter(center);
+    const rotatedCenter = center.clone().applyAxisAngle(new Vector3(0, 1, 0), ARCADE_ROTATION_Y);
+    return {
+      scale: s,
+      position: [
+        ARCADE_POSITION[0] - rotatedCenter.x * s,
+        ARCADE_POSITION[1] - box.min.y * s,
+        ARCADE_POSITION[2] - rotatedCenter.z * s,
+      ] as [number, number, number],
+    };
+  }, [scene]);
+
+  return (
+    <group
+      scale={scale}
+      position={position}
+      rotation={[0, ARCADE_ROTATION_Y, 0]}
+      onClick={(e: ThreeEvent<MouseEvent>) => {
+        e.stopPropagation();
+        onClick(e);
+      }}
+      onPointerOver={() => {
+        if (!interactive) return;
+        document.body.style.cursor = "pointer";
+        onHoverChange(true);
+      }}
+      onPointerOut={() => {
+        if (!interactive) return;
+        document.body.style.cursor = "auto";
+        onHoverChange(false);
+      }}
+    >
+      {/* The whole loader scene as ONE primitive, like Computer() — never
+          destructure nodes into separate <primitive>s here: that reparents
+          them out of drei's cached loader scene, so any remount (HMR,
+          suspense retry) measures an empty scene → NaN placement →
+          invisible cabinet. Per-submesh interactions (coin slot, buttons)
+          instead use r3f event bubbling on this group and discriminate via
+          e.object.name ("CoinInserter", "A_button", ...) in later phases;
+          the ArcadeScreen mesh's material swap mutates
+          nodes.ArcadeScreen.material in place rather than re-nesting JSX. */}
+      <primitive object={scene} />
+    </group>
+  );
+}
+
 // The visible screen surface, kept as its own top-level world-space object
 // (not nested inside Computer's auto-fit group — see screenAnchor.ts for why
 // and how its world position/normal were derived). Doubles as the hover-glow
@@ -258,12 +383,14 @@ function ScreenPlane({
 export default function Scene({
   phase,
   onComputerClick,
+  onArcadeClick,
   screenContent,
   welcomeText,
   showWelcome,
 }: {
   phase: FlightPhase;
   onComputerClick: () => void;
+  onArcadeClick: () => void;
   screenContent?: ReactNode;
   welcomeText: string;
   // False while the language-select gate is still up (App.tsx) — the sign
@@ -296,6 +423,12 @@ export default function Scene({
   };
   const handleHoverChange = (h: boolean) => setHovered(interactive && h);
 
+  const handleArcadeClick = () => {
+    if (!interactive) return;
+    setSignDismissed(true);
+    onArcadeClick();
+  };
+
   return (
     <>
       <color attach="background" args={["#000000"]} />
@@ -313,6 +446,7 @@ export default function Scene({
         castShadow
         target-position={[0, 0.9, 0]}
       />
+      <ArcadeSpot />
 
       <OfficeFloor />
 
@@ -327,9 +461,11 @@ export default function Scene({
         screenContent={screenContent}
         interactive={interactive}
       />
+      <Arcade onClick={handleArcadeClick} onHoverChange={() => {}} interactive={interactive} />
     </>
   );
 }
 
 useGLTF.preload("/Adjustable Desk.glb");
 useGLTF.preload("/Computer.glb");
+useGLTF.preload("/ArcadeFolio.glb");

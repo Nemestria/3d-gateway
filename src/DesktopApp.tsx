@@ -9,6 +9,7 @@ import PostFX from "./PostFX";
 import CrtOverlay from "./CrtOverlay";
 import { translations, type Lang } from "./i18n";
 import { PORTFOLIO_BASE_URL } from "./portfolioUrl";
+import type { StationId } from "./stations";
 
 const FX_STORAGE_KEY = "3d-gateway-fx-enabled";
 
@@ -78,6 +79,10 @@ function PortfolioFrame({ lang }: { lang: Lang }) {
 
 export default function DesktopApp() {
   const [phase, setPhase] = useState<FlightPhase>("idle");
+  // Which station the camera is flying toward/at/back from — stays set
+  // through "returning" (CameraRig needs it to lerp back from the right
+  // close shot) and only clears once back at "idle", see onReturned below.
+  const [activeStation, setActiveStation] = useState<StationId | null>(null);
   const [unlocked, setUnlocked] = useState(false);
   // null until LanguageGate resolves — gates the whole experience the same
   // way the portfolio's own splash screen does (see ARCHITECTURE.md), and
@@ -122,7 +127,7 @@ export default function DesktopApp() {
   // overlay — the portfolio lives inside the screen, camera/desk stay
   // visible around it. See ARCHITECTURE.md "How they connect".
   const screenContent =
-    phase === "arrived" && !unlocked ? (
+    phase === "arrived" && activeStation === "computer" && !unlocked ? (
       <PasswordTerminal t={t} onSuccess={() => { setUnlocked(true); setFlashActive(true); }} />
     ) : unlocked ? (
       <div style={{ position: "relative", width: "100%", height: "100%" }}>
@@ -151,15 +156,17 @@ export default function DesktopApp() {
           <Suspense fallback={null}>
             <Scene
               phase={phase}
-              onComputerClick={() => setPhase("flying")}
+              onComputerClick={() => { setActiveStation("computer"); setPhase("flying"); }}
+              onArcadeClick={() => { setActiveStation("arcade"); setPhase("flying"); }}
               screenContent={screenContent}
               welcomeText={t.welcome}
               showWelcome={lang !== null}
             />
             <CameraRig
               phase={phase}
+              station={activeStation}
               onArrived={() => setPhase("arrived")}
-              onReturned={() => setPhase("idle")}
+              onReturned={() => { setPhase("idle"); setActiveStation(null); }}
               resetKey={camResetKey}
             />
           </Suspense>

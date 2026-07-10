@@ -1,21 +1,20 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { MathUtils, Vector3, type PerspectiveCamera } from "three";
-import { SCREEN_WORLD_POSITION, SCREEN_WORLD_NORMAL } from "./screenAnchor";
+import { STATIONS, type StationId } from "./stations";
 
 export type FlightPhase = "idle" | "flying" | "arrived" | "returning";
 
 // Tunable shots. ESTABLISHED is the wide intro framing (matches the camera
-// prop passed to <Canvas>, and where "returning" lands). CLOSE backs off
-// from the screen-plane (screenAnchor.ts) along its outward normal and
-// looks straight at it.
+// prop passed to <Canvas>, and where "returning" lands) — shared by every
+// station. The "close" shot (backing off from a station's screen-plane
+// along its outward normal, looking straight at it) is per-station, looked
+// up from stations.ts via the `station` prop below rather than hardcoded
+// here, so a second (or third) station doesn't need its own CameraRig.
 const ESTABLISHED_EYE = new Vector3(4, 3, 6);
 const ESTABLISHED_TARGET = new Vector3(0, 1.2, 0);
-const CLOSE_EYE = SCREEN_WORLD_POSITION.clone().addScaledVector(SCREEN_WORLD_NORMAL, 0.35);
-const CLOSE_TARGET = SCREEN_WORLD_POSITION.clone();
 
 const ESTABLISHED_FOV = 50;
-const CLOSE_FOV = 95;
 
 const FLIGHT_DURATION = 2.4; // seconds
 const RETURN_DURATION = 1.8;
@@ -46,11 +45,15 @@ function easeInOutCubic(t: number) {
 
 export default function CameraRig({
   phase,
+  station,
   onArrived,
   onReturned,
   resetKey = 0,
 }: {
   phase: FlightPhase;
+  // Which station to fly toward — only read while phase isn't "idle"; null
+  // is fine at idle since the established shot doesn't depend on it.
+  station: StationId | null;
   onArrived: () => void;
   onReturned: () => void;
   resetKey?: number;
@@ -151,15 +154,20 @@ export default function CameraRig({
     }
 
     // --- base eye/target/fov + clamp scale for this instant ---
+    const shot = station ? STATIONS[station] : null;
+    const closeEye = shot?.closeEye ?? ESTABLISHED_EYE;
+    const closeTarget = shot?.closeTarget ?? ESTABLISHED_TARGET;
+    const closeFov = shot?.closeFov ?? ESTABLISHED_FOV;
+
     let baseEye = ESTABLISHED_EYE;
     let baseTarget = ESTABLISHED_TARGET;
     let fov = ESTABLISHED_FOV;
     let clampScale = 1;
 
     if (phase === "arrived") {
-      baseEye = CLOSE_EYE;
-      baseTarget = CLOSE_TARGET;
-      fov = CLOSE_FOV;
+      baseEye = closeEye;
+      baseTarget = closeTarget;
+      fov = closeFov;
       clampScale = ARRIVED_CLAMP_SCALE;
     } else if (phase === "flying" || phase === "returning") {
       const duration = phase === "flying" ? FLIGHT_DURATION : RETURN_DURATION;
@@ -168,9 +176,9 @@ export default function CameraRig({
       const eased = easeInOutCubic(t);
       const towardClose = phase === "flying" ? eased : 1 - eased;
 
-      baseEye = new Vector3().lerpVectors(ESTABLISHED_EYE, CLOSE_EYE, towardClose);
-      baseTarget = new Vector3().lerpVectors(ESTABLISHED_TARGET, CLOSE_TARGET, towardClose);
-      fov = MathUtils.lerp(startFov.current, phase === "flying" ? CLOSE_FOV : ESTABLISHED_FOV, eased);
+      baseEye = new Vector3().lerpVectors(ESTABLISHED_EYE, closeEye, towardClose);
+      baseTarget = new Vector3().lerpVectors(ESTABLISHED_TARGET, closeTarget, towardClose);
+      fov = MathUtils.lerp(startFov.current, phase === "flying" ? closeFov : ESTABLISHED_FOV, eased);
       clampScale = MathUtils.lerp(
         phase === "flying" ? 1 : ARRIVED_CLAMP_SCALE,
         phase === "flying" ? ARRIVED_CLAMP_SCALE : 1,
